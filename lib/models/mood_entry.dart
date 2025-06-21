@@ -1,36 +1,37 @@
+import 'dart:convert';
+
 class MoodEntry {
-  final int? id;
-  final DateTime date;
+  final String date; // yyyy-MM-dd
   final int rating;
-  final Map<String, bool> factors;
+  final String? description;
+  final String? photoPath;
+  final Map<String, dynamic>? responses; // moodidi responses
 
-  MoodEntry({this.id, required this.date, required this.rating, required this.factors});
+  MoodEntry({
+    required this.date,
+    required this.rating,
+    this.description,
+    this.photoPath,
+    this.responses,
+  });
 
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'date': date.toIso8601String(),
-      'rating': rating,
-      'factors': factors.toString(),
-    };
-  }
+  Map<String, dynamic> toMap() => {
+        'date': date,
+        'rating': rating,
+        'description': description,
+        'photoPath': photoPath,
+        'responses': responses == null ? null : jsonEncode(responses),
+      };
 
-  factory MoodEntry.fromMap(Map<String, dynamic> map) {
+  factory MoodEntry.fromMap(Map<String, dynamic> m) {
     return MoodEntry(
-      id: map['id'],
-      date: DateTime.parse(map['date']),
-      rating: map['rating'],
-      factors: Map.fromEntries(
-        (map['factors'] as String)
-            .replaceAll('{', '')
-            .replaceAll('}', '')
-            .split(', ')
-            .where((e) => e.contains(':'))
-            .map((e) => MapEntry(
-                  e.split(':')[0],
-                  e.split(':')[1] == 'true',
-                )),
-      ),
+      date: m['date'] as String,
+      rating: m['rating'] as int,
+      description: m['description'] as String?,
+      photoPath: m['photoPath'] as String?,
+      responses: m['responses'] == null
+          ? null
+          : Map<String, dynamic>.from(jsonDecode(m['responses'] as String)),
     );
   }
-} 
+}

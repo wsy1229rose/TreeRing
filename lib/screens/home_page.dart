@@ -1,70 +1,203 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
-import '../widgets/mood_wheel.dart';
-import '../db/database_helper.dart';
-import '../models/mood_entry.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:treering/db/database_helper.dart';
+import 'package:treering/models/mood_entry.dart';
+import 'package:treering/models/moodidi.dart';
+import 'package:treering/widgets/mood_wheel.dart';
+import 'package:treering/widgets/scaffold_with_nav.dart';
+import 'package:treering/screens/plot_page.dart';
 
 class HomePage extends StatefulWidget {
+  static const routeName = '/';
   const HomePage({super.key});
-
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
+  bool _interacted = true;
   int _moodValue = 0;
-  Map<String, bool> _factors = {
-    'Physically Active': false,
-    'Screen Time > 1h': false,
-    'At Home': false,
-  };
+  String? _description;
+  XFile? _photo;
+  Map<String, dynamic> _responses = {};
 
-  void _submitMood() async {
+  void _onInteract([_]) {
+    if (!_interacted) setState(() => _interacted = true);
+  }
+
+  Future<void> _save() async {
+    // check existing
+    // final today = DateTime.now().toIso8601String().split('T').first;
+    // final existing = await DatabaseHelper.instance.getEntryByDate(today);
+    // if (existing != null) {
+    //   final ok = await showDialog<bool>(
+    //     context: context,
+    //     builder: (_) => AlertDialog(
+    //       title: const Text('Overwrite entry?'),
+    //       content: const Text(
+    //           'You already saved a rating today. Overwrite it?'),
+    //       actions: [
+    //         TextButton(onPressed: () => Navigator.pop(_, false), child: const Text('No')),
+    //         TextButton(onPressed: () => Navigator.pop(_, true), child: const Text('Yes')),
+    //       ],
+    //     ),
+    //   );
+    //   if (ok != true) return;
+    //   DateTime parsedDate = DateTime.parse(today);
+    //   await DatabaseHelper.instance.deleteEntry(parsedDate);
+    // }
+
+    final today = DateTime.now().toIso8601String().split('T').first;
+
+    // collect Moodidi responses
+    final moodidis = await DatabaseHelper.instance.getMoodidiList();
+    for (var m in moodidis) {
+      final response = await _askMoodidi(m);
+      _responses[m.keyword] = response;
+    }
+
     final entry = MoodEntry(
-      date: DateTime.now(),
+      date: today,
       rating: _moodValue,
-      factors: Map.from(_factors),
+      description: _description,
+      photoPath: _photo?.path,
+      responses: _responses.isEmpty ? null : _responses,
     );
-    await DatabaseHelper().insertMoodEntry(entry);
+    await DatabaseHelper.instance.insertMoodEntry(entry);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Mood saved!')),
+      const SnackBar(content: Text('Content successfully updated!')),
+    );
+    setState(() {
+      _photo = null;
+      _description = null;
+      _responses.clear();
+    });
+  }
+
+  Future<dynamic> _askMoodidi(Moodidi m) {
+    return showDialog<dynamic>(
+      context: context,
+      builder: (_) {
+        if (m.type == 'yesno') {
+          return AlertDialog(
+            title: Text(m.prompt),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(_, true),
+                  child: const Text('Yes')),
+              TextButton(
+                  onPressed: () => Navigator.pop(_, false),
+                  child: const Text('No')),
+            ],
+          );
+        } else {
+          final ctrl = TextEditingController();
+          return AlertDialog(
+            title: Text(m.prompt),
+            content: TextField(
+              controller: ctrl,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(hintText: 'Enter number'),
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () =>
+                      Navigator.pop(_, int.tryParse(ctrl.text) ?? 0),
+                  child: const Text('Submit')),
+            ],
+          );
+        }
+      },
+    );
+  }
+
+  Future<void> _showSavePopup() async {
+    await showDialog(
+      context: context,
+      builder: (_) => StatefulBuilder(
+        builder: (_, setSt) {
+          return AlertDialog(
+            title: const Text('Want to drop some notes?'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  minLines: 3,
+                  maxLines: null,
+                  decoration: const InputDecoration(
+                      hintText: 'Something to say about the day…'),
+                  onChanged: (s) => _description = s,
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Text('or drop a '),
+                    ElevatedButton(
+                      onPressed: () async {
+                        final img = await ImagePicker().pickImage(
+                          source: ImageSource.gallery,
+                          maxHeight: 800,
+                          maxWidth: 800,
+                        );
+                        if (img != null) setState(() => _photo = img);
+                      },
+                      child: const Text('photo'),
+                    ),
+                    if (_photo != null) const SizedBox(width: 8),
+                    if (_photo != null) const Text('picture selected'),
+                  ],
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(_, null);
+                },
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(_, true);
+                  _save();
+                },
+                child: const Text('Submit →'),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('TreeRing')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Text('How was your day?', style: TextStyle(fontSize: 20)),
-            MoodWheel(
-              value: _moodValue,
-              onChanged: (index) {
-                setState(() {
-                  _moodValue = index - 10;
-                });
-              },
-            ),
-            SizedBox(height: 20),
-            ..._factors.keys.map((factor) => CheckboxListTile(
-                  title: Text(factor),
-                  value: _factors[factor],
-                  onChanged: (val) {
-                    setState(() {
-                      _factors[factor] = val ?? false;
-                    });
-                  },
-                )),
-            Spacer(),
-            ElevatedButton(
-              onPressed: _submitMood,
-              child: Text('Save'),
-            ),
-          ],
+    return ScaffoldWithNav(
+      currentIndex: 0,
+      body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: _onInteract,
+        onPanUpdate: _onInteract,
+        child: Center(
+          child: _interacted
+              ? Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text('How am I today', style: TextStyle(fontSize: 20)),
+                    MoodWheel(value: _moodValue, onChanged: (v) {
+                      setState(() => _moodValue = v);
+                    }),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: _showSavePopup,
+                      child: const Text('save'),
+                    ),
+                  ],
+                )
+              : const SizedBox.shrink(),
         ),
       ),
     );
   }
-} 
+}

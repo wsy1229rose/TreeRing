@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'screens/home_page.dart';
-import 'screens/factor_page.dart';
 import 'screens/plot_page.dart';
-import 'screens/report_page.dart';
+import 'screens/record_page.dart';
+import 'screens/monthly_report_page.dart';
+import 'screens/moodidi_manager_page.dart';
+import 'screens/moodidi_creation_page.dart';
 
 void main() {
   runApp(const TreeRingApp());
@@ -16,51 +18,31 @@ class TreeRingApp extends StatelessWidget {
     return MaterialApp(
       title: 'TreeRing',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF2E4C2F), // dark green
+          brightness: Brightness.light,
+        ),
         useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFF2E4C2F), // background color for all screens
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF2E4C2F),
+          foregroundColor: Colors.white,
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.white,
+            foregroundColor: Color(0xFF2E4C2F), // text color
+          ),
+        ),
       ),
-      home: const MainPage(),
+      home: const HomePage(),
+      routes: {
+        PlotPage.routeName: (_) => const PlotPage(),
+        RecordPage.routeName: (_) => const RecordPage(),
+        MonthlyReportPage.routeName: (_) => const MonthlyReportPage(),
+        MoodidiManagerPage.routeName: (_) => const MoodidiManagerPage(),
+        MoodidiCreationPage.routeName: (_) => const MoodidiCreationPage(),
+      },
     );
   }
 }
-
-class MainPage extends StatefulWidget {
-  const MainPage({super.key});
-
-  @override
-  State<MainPage> createState() => _MainPageState();
-}
-
-class _MainPageState extends State<MainPage> {
-  int _selectedIndex = 0;
-
-  static const List<Widget> _pages = [
-    HomePage(),
-    FactorPage(),
-    PlotPage(),
-    ReportPage(),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: _pages[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.green,
-        unselectedItemColor: Colors.grey,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.tune), label: 'Factors'),
-          BottomNavigationBarItem(icon: Icon(Icons.show_chart), label: 'Plot'),
-          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'Report'),
-        ],
-      ),
-    );
-  }
-} 
