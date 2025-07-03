@@ -34,7 +34,7 @@ class ScaffoldWithNav extends StatelessWidget {
         children: [
           AnimatedOpacity(
             opacity: interacted ? 1.0 : 0.0,
-            duration: const Duration(seconds: 1),
+            duration: const Duration(seconds: 5),
             child: const HeaderBar(),
           ),
           Expanded(child: body),      // <-- the page’s own content
@@ -42,7 +42,7 @@ class ScaffoldWithNav extends StatelessWidget {
       ),
       bottomNavigationBar: AnimatedOpacity(
         opacity: interacted ? 1.0 : 0.0,
-        duration: const Duration(seconds: 1),
+        duration: const Duration(seconds: 5),
         child: BottomNavigationBar(
           currentIndex: currentIndex,
           onTap: (index) => _onItemTapped(context, index),

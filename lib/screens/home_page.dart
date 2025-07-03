@@ -185,40 +185,42 @@ class _HomePageState extends State<HomePage> {
         onTapDown: _onInteract,
         onPanUpdate: _onInteract,
         child: Center(
-          child: _interacted
-              ? Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    AnimatedOpacity(
-                      opacity: _interacted ? 1.0 : 0.0,
-                      duration: const Duration(seconds: 1),
-                      child: const Text(
-                        'How was the day...',
-                        style: TextStyle(fontSize: 30, color: Colors.white),
-                      ),
-                    ),
-                    SizedBox(height: 30),
-                    MoodWheel(
-                      interacted: _interacted,
-                      onInteracted: () => setState(() => _interacted = true),
-                      value: _moodValue, onChanged: (v) {
-                      setState(() => _moodValue = v);
-                    }),
-                    const SizedBox(height: 30),
-                    AnimatedOpacity(
-                      opacity: _interacted ? 1.0 : 0.0,
-                      duration: const Duration(seconds: 1),
-                      child: ElevatedButton(
-                        onPressed: _showSavePopup,
-                        child: const Text(
-                          'save', 
-                          style: TextStyle(fontSize: 30, color: Colors.white),
-                        ),
-                      )
-                    )
-                  ],
-                )
-              : const SizedBox.shrink(),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              AnimatedOpacity(
+                opacity: _interacted ? 1.0 : 0.0,
+                duration: const Duration(seconds: 1),
+                child: const Text(
+                  'How was the day...',
+                  style: TextStyle(fontSize: 24, color: Colors.white),
+                ),
+              ),
+              const SizedBox(height: 30),
+
+              // ✅ MoodWheel is always visible
+              MoodWheel(
+                interacted: _interacted,
+                onInteracted: () => setState(() => _interacted = true),
+                value: _moodValue,
+                onChanged: (v) => setState(() => _moodValue = v),
+              ),
+
+              const SizedBox(height: 30),
+
+              AnimatedOpacity(
+                opacity: _interacted ? 1.0 : 0.0,
+                duration: const Duration(seconds: 3),
+                child: ElevatedButton(
+                  onPressed: _showSavePopup,
+                  child: const Text(
+                    'save',
+                    style: TextStyle(fontSize: 24, color: Colors.black),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
