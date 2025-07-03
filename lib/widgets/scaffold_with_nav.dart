@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:treering/screens/home_page.dart';
 import 'package:treering/screens/plot_page.dart';
+import 'header_bar.dart';
 
 class ScaffoldWithNav extends StatelessWidget {
   final Widget body;
   final int currentIndex;
+  final bool interacted;
 
   const ScaffoldWithNav({
     super.key,
     required this.body,
     required this.currentIndex,
+    required this.interacted,
   });
 
   void _onItemTapped(BuildContext context, int index) {
@@ -27,16 +30,28 @@ class ScaffoldWithNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('TreeRing')),
-      body: body,
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: currentIndex,
-        onTap: (index) => _onItemTapped(context, index),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.show_chart), label: 'Plot'),
+      body: Column(
+        children: [
+          AnimatedOpacity(
+            opacity: interacted ? 1.0 : 0.0,
+            duration: const Duration(seconds: 1),
+            child: const HeaderBar(),
+          ),
+          Expanded(child: body),      // <-- the page’s own content
         ],
       ),
+      bottomNavigationBar: AnimatedOpacity(
+        opacity: interacted ? 1.0 : 0.0,
+        duration: const Duration(seconds: 1),
+        child: BottomNavigationBar(
+          currentIndex: currentIndex,
+          onTap: (index) => _onItemTapped(context, index),
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+            BottomNavigationBarItem(icon: Icon(Icons.show_chart), label: 'Plot'),
+          ],
+        )
+      )
     );
   }
 }

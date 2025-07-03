@@ -16,7 +16,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  bool _interacted = true;
+  bool _interacted = false;
   int _moodValue = 0;
   String? _description;
   XFile? _photo;
@@ -118,15 +118,19 @@ class _HomePageState extends State<HomePage> {
       builder: (_) => StatefulBuilder(
         builder: (_, setSt) {
           return AlertDialog(
-            title: const Text('Want to drop some notes?'),
+            title: const Text('Want to drop some notes?', style: TextStyle(fontSize: 32,)),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
-                  minLines: 3,
+                  minLines: 1,
                   maxLines: null,
                   decoration: const InputDecoration(
-                      hintText: 'Something to say about the day…'),
+                      hintText: 'something to say about the day…',
+                      hintStyle: TextStyle(
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
                   onChanged: (s) => _description = s,
                 ),
                 const SizedBox(height: 8),
@@ -162,7 +166,7 @@ class _HomePageState extends State<HomePage> {
                   Navigator.pop(_, true);
                   _save();
                 },
-                child: const Text('Submit →'),
+                child: const Text('Submit'),
               ),
             ],
           );
@@ -175,6 +179,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return ScaffoldWithNav(
       currentIndex: 0,
+      interacted: _interacted,
       body: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTapDown: _onInteract,
@@ -184,15 +189,33 @@ class _HomePageState extends State<HomePage> {
               ? Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text('How am I today', style: TextStyle(fontSize: 20)),
-                    MoodWheel(value: _moodValue, onChanged: (v) {
+                    AnimatedOpacity(
+                      opacity: _interacted ? 1.0 : 0.0,
+                      duration: const Duration(seconds: 1),
+                      child: const Text(
+                        'How was the day...',
+                        style: TextStyle(fontSize: 30, color: Colors.white),
+                      ),
+                    ),
+                    SizedBox(height: 30),
+                    MoodWheel(
+                      interacted: _interacted,
+                      onInteracted: () => setState(() => _interacted = true),
+                      value: _moodValue, onChanged: (v) {
                       setState(() => _moodValue = v);
                     }),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: _showSavePopup,
-                      child: const Text('save'),
-                    ),
+                    const SizedBox(height: 30),
+                    AnimatedOpacity(
+                      opacity: _interacted ? 1.0 : 0.0,
+                      duration: const Duration(seconds: 1),
+                      child: ElevatedButton(
+                        onPressed: _showSavePopup,
+                        child: const Text(
+                          'save', 
+                          style: TextStyle(fontSize: 30, color: Colors.white),
+                        ),
+                      )
+                    )
                   ],
                 )
               : const SizedBox.shrink(),

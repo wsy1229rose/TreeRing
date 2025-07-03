@@ -55,9 +55,9 @@ class _MonthlyReportPageState extends State<MonthlyReportPage> {
         .indexOf(month);
     Color lineColor;
     if (mIdx >= 2 && mIdx <= 4) lineColor = Colors.green;
-    else if (mIdx >= 5 && mIdx <= 7) lineColor = Colors.blue;
+    else if (mIdx >= 5 && mIdx <= 7) lineColor = Colors.yellow;
     else if (mIdx >= 8 && mIdx <= 10) lineColor = Colors.orange;
-    else lineColor = Colors.grey;
+    else lineColor = Colors.blue;
 
     return Scaffold(
       appBar: AppBar(title: Text(month)),
