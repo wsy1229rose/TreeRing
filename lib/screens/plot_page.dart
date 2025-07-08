@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:treering/db/database_helper.dart';
@@ -5,7 +7,6 @@ import 'package:treering/models/mood_entry.dart';
 import 'package:treering/models/moodidi.dart';
 import 'package:treering/screens/moodidi_manager_page.dart';
 import 'package:treering/widgets/scaffold_with_nav.dart';
-import 'dart:math';
 
 class PlotPage extends StatefulWidget {
   static const routeName = '/plot';
@@ -15,14 +16,16 @@ class PlotPage extends StatefulWidget {
 }
 
 class _PlotPageState extends State<PlotPage> {
+  List<MoodEntry> _allEntries = [];
   List<MoodEntry> _entries = [];
+  int _visibleCount = 7;
+
+  Offset? _imageBoxOffset;
+  MoodEntry? _tappedEntry;
+
   double medianValue = 0.0;
   double averageValue = 0.0;
   double stdDevValue = 0.0;
-  String _dayOfWeekAbbrev(int weekday) {
-    const days = ['Mon.', 'Tue.', 'Wed.', 'Thu.', 'Fri.', 'Sat.', 'Sun.'];
-    return days[weekday % 7];
-  }
 
   @override
   void initState() {
@@ -31,46 +34,34 @@ class _PlotPageState extends State<PlotPage> {
   }
 
   Future _load() async {
-      print('[DEBUG] fetching entries...');
-      final all = await DatabaseHelper.instance.getMoodEntries();
-      print('[DEBUG] retrieved ${all.length} entries');
-
-      for (var entry in all) {
-        print('[DEBUG] entry: ${entry.date} → ${entry.rating}');
-      }
-
-    // sort descending by date
+    final all = await DatabaseHelper.instance.getMoodEntries();
     all.sort((a, b) =>
-      DateTime.parse(b.date).compareTo(DateTime.parse(a.date)));
-
-    // show last 10 or fewer
-    setState(() => _entries = all.take(10).toList());
-
-    // compute statistics
-    final latest = all.take(10).toList();
-    final ratings = latest.map((e) => e.rating).toList();
-    ratings.sort();
-    final n = ratings.length;
-
-    double median = n % 2 == 1
-        ? ratings[n ~/ 2].toDouble()
-        : (ratings[n ~/ 2 - 1] + ratings[n ~/ 2]) / 2.0;
-
-    double avg = ratings.reduce((a, b) => a + b) / n;
-
-    double variance = ratings
-        .map((r) => pow(r - avg, 2))
-        .reduce((a, b) => a + b) / n;
-
-    double stddev = sqrt(variance);
+        DateTime.parse(b.date).compareTo(DateTime.parse(a.date))); // newest first
 
     setState(() {
-      _entries = latest;
+      _allEntries = all;
+      _entries = all.take(_visibleCount).toList().reversed.toList(); // oldest to newest
+    });
+
+    _computeStats();
+  }
+
+  void _computeStats() {
+    final ratings = _entries.map((e) => e.rating).toList();
+    if (ratings.isEmpty) return;
+    final n = ratings.length;
+    final sorted = [...ratings]..sort();
+    final median = n % 2 == 1
+        ? sorted[n ~/ 2].toDouble()
+        : (sorted[n ~/ 2 - 1] + sorted[n ~/ 2]) / 2.0;
+    final avg = ratings.reduce((a, b) => a + b) / n;
+    final stddev = sqrt(ratings.map((r) => pow(r - avg, 2)).reduce((a, b) => a + b) / n);
+
+    setState(() {
       medianValue = median;
       averageValue = avg;
       stdDevValue = stddev;
     });
-
   }
 
   void _showPlotAgainst() async {
@@ -119,7 +110,7 @@ class _PlotPageState extends State<PlotPage> {
               ),
               TextButton(
                 onPressed: () {
-                  // TODO: actually plot against sel
+                  // TODO: plot against selected Moodidi
                   Navigator.pop(_);
                 },
                 child: const Text('Submit'),
@@ -131,43 +122,41 @@ class _PlotPageState extends State<PlotPage> {
     }
   }
 
-  Widget buildStatBox(String label, double value) {
-    return Column(
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+  void _showFullscreenImage(String imagePath) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.black,
+        insetPadding: const EdgeInsets.all(10),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Expanded(child: Image.file(File(imagePath), fit: BoxFit.contain)),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close', style: TextStyle(color: Colors.white)),
+            ),
+            const SizedBox(height: 10),
+          ],
         ),
-        Container(
-          //margin: const EdgeInsets.symmetric(horizontal: 4),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.yellow.shade200,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Text(
-            value.toStringAsFixed(2),
-            style: const TextStyle(color: Colors.black),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
-
-    // newest entry shows up from the right (before showing up from the left)
-    final reversedEntries = _entries.reversed.toList();
-
+    final reversed = _entries;
     final spots = <FlSpot>[];
-    for (var i = 0; i < _entries.length; i++) {
-      spots.add(FlSpot(i.toDouble(), reversedEntries[i].rating.toDouble()));
+    final cumulativeAvgSpots = <FlSpot>[];
+    double sum = 0;
+
+    for (int i = 0; i < reversed.length; i++) {
+      final r = reversed[i].rating.toDouble();
+      spots.add(FlSpot(i.toDouble(), r));
+      sum += r;
+      cumulativeAvgSpots.add(FlSpot(i.toDouble(), sum / (i + 1)));
     }
+
     return ScaffoldWithNav(
       currentIndex: 1,
       interacted: true,
@@ -179,77 +168,150 @@ class _PlotPageState extends State<PlotPage> {
                 children: [
                   SizedBox(
                     height: 460,
-                    child: LineChart(
-                      LineChartData(
-                        lineTouchData: LineTouchData(
-                          enabled: true,
-                          touchTooltipData: LineTouchTooltipData(
-                            tooltipPadding: const EdgeInsets.all(8),
-                            getTooltipItems: (touchedSpots) {
-                              return touchedSpots.map((touchedSpot) {
-                                final index = touchedSpot.x.toInt();
-                                final entry = reversedEntries[index];
-                                return LineTooltipItem(
-                                  'Mood: ${entry.rating}\n'
-                                  '${entry.description?.isNotEmpty == true ? "note: ${entry.description}" : ""}\n'
-                                  '${entry.photoPath != null ? "📷 Attached" : ""}',
-                                  const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                  ),
-                                );
-                              }).toList();
-                            },
-                          ),
-                        ),
+                    child: GestureDetector(
+                      onScaleUpdate: (details) {
+                        if (details.scale < 0.9) {
+                          setState(() {
+                            _visibleCount = _visibleCount < 30 ? 30 : (_visibleCount < 100 ? 100 : _allEntries.length);
+                            _entries = _allEntries.take(_visibleCount).toList().reversed.toList();
+                            _computeStats();
+                          });
+                        }
+                      },
+                      onTapUp: (_) {
+                        setState(() {
+                          _imageBoxOffset = null;
+                          _tappedEntry = null;
+                        });
+                      },
+                      child: Stack(
+                        children: [
+                          LineChart(
+                            LineChartData(
+                              lineTouchData: LineTouchData(
+                                enabled: true,
+                                touchCallback: (event, response) {
+                                  if (event is FlTapUpEvent && response != null) {
+                                    final spot = response.lineBarSpots?.first;
+                                    if (spot == null) return;
+                                    final index = spot.x.toInt();
+                                    final entry = reversed[index];
+                                    if (entry.photoPath != null && entry.photoPath!.isNotEmpty) {
+                                      final localPos = event.localPosition;
 
-                        lineBarsData: [
-                          LineChartBarData(
-                            spots: spots,
-                            isCurved: false,
-                            barWidth: 2,
-                            dotData: const FlDotData(show: true),
+                                      // Adjust to avoid going offscreen
+                                      final dx = localPos.dx.clamp(10.0, MediaQuery.of(context).size.width - 110);
+                                      final dy = localPos.dy.clamp(10.0, 460 - 110);
+
+                                      setState(() {
+                                        _imageBoxOffset = Offset(dx.toDouble(), dy.toDouble());
+                                        _tappedEntry = entry;
+                                      });
+                                    }
+                                  }
+                                },
+                              ),
+                              lineBarsData: [
+                                LineChartBarData(
+                                  spots: spots,
+                                  isCurved: false,
+                                  barWidth: 2,
+                                  dotData: const FlDotData(show: true),
+                                ),
+                                LineChartBarData(
+                                  spots: List.generate(spots.length, (i) => FlSpot(i.toDouble(), averageValue)),
+                                  isCurved: false,
+                                  barWidth: 1.5,
+                                  color: Colors.grey,
+                                  dashArray: [5, 5],
+                                  dotData: const FlDotData(show: false),
+                                ),
+                                LineChartBarData(
+                                  spots: cumulativeAvgSpots,
+                                  isCurved: true,
+                                  barWidth: 2,
+                                  color: Colors.yellow.shade200,
+                                  dotData: const FlDotData(show: false),
+                                ),
+                              ],
+                              titlesData: FlTitlesData(
+                                bottomTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    interval: (_visibleCount / 7).ceilToDouble(),
+                                    getTitlesWidget: (value, meta) {
+                                      final index = value.toInt();
+                                      if (index < 0 || index >= reversed.length) return const SizedBox();
+                                      final date = DateTime.parse(reversed[index].date);
+                                      return Text(
+                                        "${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}",
+                                        style: const TextStyle(color: Colors.white, fontSize: 11),
+                                      );
+                                    },
+                                  ),
+                                ),
+                                leftTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    reservedSize: 30,
+                                    getTitlesWidget: (value, _) => Text(
+                                      value.toInt().toString(),
+                                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                                    ),
+                                  ),
+                                ),
+                                topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                              ),
+                              borderData: FlBorderData(show: false),
+                              gridData: FlGridData(show: false),
+                            ),
                           ),
-                        ],
-                        titlesData: FlTitlesData(
-                          leftTitles: AxisTitles(
-                            sideTitles: SideTitles(
-                              showTitles: true,
-                              reservedSize: 40,
-                              getTitlesWidget: (value, meta) => Text(
-                                value.toInt().toString(),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
+                          if (_imageBoxOffset != null && _tappedEntry != null)
+                            Positioned(
+                              left: _imageBoxOffset!.dx,
+                              top: _imageBoxOffset!.dy,
+                              child: Container(
+                                width: 110,
+                                height: 130,
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: Colors.black87,
+                                  borderRadius: BorderRadius.circular(8),
+                                  boxShadow: [
+                                    BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(2, 2)),
+                                  ],
+                                ),
+                                child: Column(
+                                  children: [
+                                    GestureDetector(
+                                      onTap: () => _showFullscreenImage(_tappedEntry!.photoPath!),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(6),
+                                        child: Image.file(
+                                          File(_tappedEntry!.photoPath!),
+                                          height: 80,
+                                          width: 100,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                    ),
+                                    if (_tappedEntry!.description != null)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 4),
+                                        child: Text(
+                                          _tappedEntry!.description!,
+                                          style: const TextStyle(color: Colors.white, fontSize: 11),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                  ],
                                 ),
                               ),
                             ),
-                          ),
-                          bottomTitles: AxisTitles(
-                            sideTitles: SideTitles(
-                              showTitles: true,
-                              interval: 1,
-                              getTitlesWidget: (value, meta) {
-                                final int index = value.toInt();
-                                if (index < 0 || index >= reversedEntries.length) return const SizedBox();
-                                final date = DateTime.parse(reversedEntries[index].date);
-                                final dayLabel = _dayOfWeekAbbrev(date.weekday);
-                                return Text(
-                                  dayLabel,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        ),
-                        borderData: FlBorderData(show: false),
-                        gridData: FlGridData(show: false),
-                      ),      
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -269,14 +331,35 @@ class _PlotPageState extends State<PlotPage> {
                           onPressed: _showPlotAgainst,
                           child: const Text('Plot Against…')),
                       ElevatedButton(
-                          onPressed: () =>
-                              Navigator.pushNamed(context, '/record'),
+                          onPressed: () => Navigator.pushNamed(context, '/record'),
                           child: const Text('View History')),
                     ],
                   ),
                 ],
               ),
       ),
+    );
+  }
+
+  Widget buildStatBox(String label, double value) {
+    return Column(
+      children: [
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.yellow.shade200,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+            value.toStringAsFixed(2),
+            style: const TextStyle(color: Colors.black),
+          ),
+        ),
+      ],
     );
   }
 }

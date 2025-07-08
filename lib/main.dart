@@ -4,7 +4,7 @@ import 'screens/plot_page.dart';
 import 'screens/record_page.dart';
 import 'screens/monthly_report_page.dart';
 import 'screens/moodidi_manager_page.dart';
-import 'screens/moodidi_creation_page.dart';
+import 'widgets/start_page.dart';
 
 void main() {
   runApp(const TreeRingApp());
@@ -35,13 +35,14 @@ class TreeRingApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const HomePage(),
+      initialRoute: '/start',
       routes: {
+        '/start': (context) => const StartPage(),
+        '/': (context) => const HomePage(),
         PlotPage.routeName: (_) => const PlotPage(),
         RecordPage.routeName: (_) => const RecordPage(),
         MonthlyReportPage.routeName: (_) => const MonthlyReportPage(),
         MoodidiManagerPage.routeName: (_) => const MoodidiManagerPage(),
-        MoodidiCreationPage.routeName: (_) => const MoodidiCreationPage(),
       },
     );
   }

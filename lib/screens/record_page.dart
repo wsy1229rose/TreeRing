@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:treering/screens/monthly_report_page.dart';
+import 'package:treering/widgets/scaffold_with_nav.dart';
 
 class RecordPage extends StatelessWidget {
   static const routeName = '/record';
@@ -9,7 +10,18 @@ class RecordPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final months = ['May', 'June', 'July', 'August'];
     return Scaffold(
-      appBar: AppBar(title: const Text('Record')),
+      appBar: AppBar(
+        backgroundColor: Colors.white, 
+        centerTitle: true,
+        title: const Text(
+          'My Record',
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        iconTheme: const IconThemeData(color: Colors.black),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

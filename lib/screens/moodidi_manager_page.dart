@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:treering/db/database_helper.dart';
 import 'package:treering/models/moodidi.dart';
-import 'package:treering/screens/moodidi_creation_page.dart';
+import 'package:treering/widgets/scaffold_with_nav.dart';
+import 'package:treering/widgets/moodidi_creation_dialog.dart';
+import 'package:flutter/gestures.dart';
 
 class MoodidiManagerPage extends StatefulWidget {
   static const routeName = '/moodidiManager';
@@ -29,41 +31,64 @@ class _MoodidiManagerPageState extends State<MoodidiManagerPage> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('What is a Moodidi?'),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Text(
-              'You could use this feature to study whether something …'),
-          GestureDetector(
-            onTap: () {
-              Navigator.pop(_);
-              _showInspiration();
-            },
-            child: const Text('suggestions',
-                style: TextStyle(color: Colors.blue)),
-          ),
-        ]),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text.rich(
+              TextSpan(
+                text:
+                    'You could use this feature to study whether something (a factor) can positively / negatively / not influence your mood by looking at its correlation with your happiness. If you don’t know what might influence your mood, here is where you can ',
+                style: const TextStyle(color: Colors.black),
+                children: [
+                  TextSpan(
+                    text: 'start',
+                    style: const TextStyle(
+                      color: Colors.blue,
+                      decoration: TextDecoration.underline,
+                    ),
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = () {
+                        Navigator.pop(_);
+                        _showInspiration();
+                      },
+                  ),
+                  const TextSpan(text: '.'),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
+
 
   void _showInspiration() {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Have you ever wondered how…'),
+        title: const Text('Have you ever wondered how the following factors might influence your mood …?'),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
-          for (var kw in ['Weather', 'Sleeping time', 'Active'])
+          for (var kw in ['Weather', 'Sleeping time', 'Physical Activeness', ])
             ListTile(
               title: Text(kw),
               trailing: TextButton(
                 onPressed: () {
-                  Navigator.pop(_);
-                  Navigator.pushNamed(
-                    context,
-                    MoodidiCreationPage.routeName,
-                    arguments: kw,
+                  Navigator.pop(_);   // close the inspiration dialog first
+                  showDialog(
+                    context: context,
+                    builder: (_) => MoodidiCreationDialog(initialKeyword: kw),
                   ).then((_) => _refresh());
                 },
-                child: const Text('set up'),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.edit),
+                    SizedBox(width: 4),
+                    Text('set up'),
+                  ],
+                ),
               ),
             ),
         ]),
@@ -75,36 +100,75 @@ class _MoodidiManagerPageState extends State<MoodidiManagerPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Moodidi'),
+        backgroundColor: Colors.white, 
+        centerTitle: true,
+        title: const Text(
+          'Moodidi Manager',
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         actions: [
           IconButton(onPressed: _showWhatIs, icon: const Icon(Icons.help)),
         ],
+        iconTheme: const IconThemeData(color: Colors.black),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: _list.map((m) {
-          return Card(
-            color: Colors.grey[200],
-            margin: const EdgeInsets.symmetric(vertical: 4),
-            child: ListTile(
-              title: Text(m.keyword),
-              trailing: IconButton(
-                icon: const Icon(Icons.remove_circle, color: Colors.red),
-                onPressed: () async {
-                  await DatabaseHelper.instance.deleteMoodidi(m.id!);
-                  _refresh();
-                },
-              ),
+      body: Stack(
+        children: [
+          // Main content: list of Moodidis
+          ListView(
+            padding: const EdgeInsets.all(16),
+            children: _list.map((m) {
+              return Card(
+                color: Colors.grey[200],
+                margin: const EdgeInsets.symmetric(vertical: 4),
+                child: ListTile(
+                  title: Text(m.keyword),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.remove_circle, color: Colors.red),
+                    onPressed: () async {
+                      await DatabaseHelper.instance.deleteMoodidi(m.id!);
+                      _refresh();
+                    },
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+
+          // Orange "+" button (left of center)
+          Positioned(
+            bottom: 80,
+            left: MediaQuery.of(context).size.width * 0.3,
+            child: FloatingActionButton(
+              backgroundColor: Colors.orange,
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (_) => const MoodidiCreationDialog(),
+                );
+              },
+              child: const Icon(Icons.add),
             ),
-          );
-        }).toList(),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.pushNamed(context, MoodidiCreationPage.routeName)
-              .then((_) => _refresh());
-        },
-        child: const Icon(Icons.add),
+          ),
+
+          // Yellow "−" button (right of center)
+          Positioned(
+            bottom: 80,
+            left: MediaQuery.of(context).size.width * 0.6,
+            child: FloatingActionButton(
+              backgroundColor: Colors.yellow,
+              onPressed: () {
+                // Temporary placeholder action
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Minus button pressed')),
+                );
+              },
+              child: const Icon(Icons.remove),
+            ),
+          ),
+        ],
       ),
     );
   }

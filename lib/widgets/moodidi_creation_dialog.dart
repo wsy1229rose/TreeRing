@@ -2,51 +2,52 @@ import 'package:flutter/material.dart';
 import 'package:treering/db/database_helper.dart';
 import 'package:treering/models/moodidi.dart';
 
-class MoodidiCreationPage extends StatefulWidget {
-  static const routeName = '/moodidiCreate';
-  const MoodidiCreationPage({super.key});
+class MoodidiCreationDialog extends StatefulWidget {
+  final String? initialKeyword;
+  const MoodidiCreationDialog({super.key, this.initialKeyword});
+
   @override
-  State<MoodidiCreationPage> createState() => _MoodidiCreationPageState();
+  State<MoodidiCreationDialog> createState() => _MoodidiCreationDialogState();
 }
 
-class _MoodidiCreationPageState extends State<MoodidiCreationPage> {
+class _MoodidiCreationDialogState extends State<MoodidiCreationDialog> {
   int _step = 1;
   final _kwCtrl = TextEditingController();
-  String _type = 'yesno';
   final _promptCtrl = TextEditingController();
+  String _type = 'yesno';
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final arg = ModalRoute.of(context)!.settings.arguments;
-    if (arg is String) _kwCtrl.text = arg;
+  void initState() {
+    super.initState();
+    if (widget.initialKeyword != null) {
+      _kwCtrl.text = widget.initialKeyword!;
+    }
   }
 
-  Future _finish() async {
+  Future<void> _finish() async {
     final m = Moodidi(
       keyword: _kwCtrl.text.trim(),
       type: _type,
       prompt: _promptCtrl.text.trim(),
     );
     await DatabaseHelper.instance.insertMoodidi(m);
-    Navigator.pop(context);
+    if (mounted) Navigator.of(context).pop(); // close dialog
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create a Moodidi'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
+    return AlertDialog(
+      title: const Text('Create a Moodidi'),
+      content: SizedBox(
+        width: 300,
         child: _step == 1
             ? Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(
                     controller: _kwCtrl,
                     decoration:
-                        const InputDecoration(labelText: 'What might influence your mood… Key word'),
+                        const InputDecoration(labelText: 'Key word'),
                   ),
                   RadioListTile(
                     title: const Text('yes/no question'),
@@ -60,7 +61,7 @@ class _MoodidiCreationPageState extends State<MoodidiCreationPage> {
                     groupValue: _type,
                     onChanged: (v) => setState(() => _type = v!),
                   ),
-                  const Spacer(),
+                  const SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: _kwCtrl.text.trim().isEmpty
                         ? null
@@ -70,14 +71,16 @@ class _MoodidiCreationPageState extends State<MoodidiCreationPage> {
                 ],
               )
             : Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(
                     controller: _promptCtrl,
                     maxLines: null,
                     decoration: const InputDecoration(
-                        hintText: 'How would you want to be prompted…'),
+                      hintText: 'How would you want to be prompted…',
+                    ),
                   ),
-                  const Spacer(),
+                  const SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: _promptCtrl.text.trim().isEmpty
                         ? null

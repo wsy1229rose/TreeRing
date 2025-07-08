@@ -148,7 +148,7 @@ class _HomePageState extends State<HomePage> {
                       },
                       child: const Text('photo'),
                     ),
-                    if (_photo != null) const SizedBox(width: 8),
+                    if (_photo == null) const SizedBox(width: 8),
                     if (_photo != null) const Text('picture selected'),
                   ],
                 ),

@@ -49,6 +49,8 @@ class DatabaseHelper {
         createdAt  TEXT    NOT NULL
       )
     ''');
+
+    await db.execute('CREATE INDEX idx_mood_entries_date ON mood_entries(date);');
   }
 
   Future<int> deleteEntry(DateTime date) async {

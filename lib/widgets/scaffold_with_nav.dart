@@ -32,18 +32,12 @@ class ScaffoldWithNav extends StatelessWidget {
     return Scaffold(
       body: Column(
         children: [
-          AnimatedOpacity(
-            opacity: interacted ? 1.0 : 0.0,
-            duration: const Duration(seconds: 5),
-            child: const HeaderBar(),
-          ),
+          const HeaderBar(),
           Expanded(child: body),      // <-- the page’s own content
         ],
       ),
-      bottomNavigationBar: AnimatedOpacity(
-        opacity: interacted ? 1.0 : 0.0,
-        duration: const Duration(seconds: 5),
-        child: BottomNavigationBar(
+      bottomNavigationBar:
+        BottomNavigationBar(
           currentIndex: currentIndex,
           onTap: (index) => _onItemTapped(context, index),
           items: const [
@@ -51,7 +45,6 @@ class ScaffoldWithNav extends StatelessWidget {
             BottomNavigationBarItem(icon: Icon(Icons.show_chart), label: 'Plot'),
           ],
         )
-      )
     );
   }
 }
