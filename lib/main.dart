@@ -19,19 +19,19 @@ class TreeRingApp extends StatelessWidget {
       title: 'TreeRing',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF2E4C2F), // dark green
+          seedColor: const Color(0xFF004D40), // dark green
           brightness: Brightness.light,
         ),
         useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFF2E4C2F), // background color for all screens
+        scaffoldBackgroundColor: const Color(0xFF004D40), // background color for all screens
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF2E4C2F),
+          backgroundColor: Color(0xFF004D40),
           foregroundColor: Colors.white,
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.white,
-            foregroundColor: Color(0xFF2E4C2F), // text color
+            foregroundColor: Color(0xFF004D40), // text color
           ),
         ),
       ),

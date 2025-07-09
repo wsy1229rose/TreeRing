@@ -30,7 +30,7 @@ class _MoodidiManagerPageState extends State<MoodidiManagerPage> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('What is a Moodidi?'),
+        title: const Center(child: Text('What is a Moodidi?'),),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -38,7 +38,7 @@ class _MoodidiManagerPageState extends State<MoodidiManagerPage> {
             Text.rich(
               TextSpan(
                 text:
-                    'You could use this feature to study whether something (a factor) can positively / negatively / not influence your mood by looking at its correlation with your happiness. If you don’t know what might influence your mood, here is where you can ',
+                    '          You could use this feature to study whether something (a factor) can positively / negatively / not influence your mood by looking at its correlation with your happiness. If you don’t know what might influence your mood, here is where you can ',
                 style: const TextStyle(color: Colors.black),
                 children: [
                   TextSpan(
@@ -68,7 +68,7 @@ class _MoodidiManagerPageState extends State<MoodidiManagerPage> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Have you ever wondered how the following factors might influence your mood …?'),
+        title: const Text('Have you ever wondered how the following factors might influence your mood …?', style: TextStyle(fontSize: 16),),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           for (var kw in ['Weather', 'Sleeping time', 'Physical Activeness', ])
             ListTile(
@@ -81,6 +81,16 @@ class _MoodidiManagerPageState extends State<MoodidiManagerPage> {
                     builder: (_) => MoodidiCreationDialog(initialKeyword: kw),
                   ).then((_) => _refresh());
                 },
+
+       //         final created = await showDialog(
+       //           context: context,
+       //           builder: (_) => MoodidiCreationDialog(initialKeyword: kw),
+       //         );
+       //         if (created == true) {
+       //           _refresh(); //Refresh only if new Moodidi was created
+       //         }
+       //       },
+
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -143,11 +153,14 @@ class _MoodidiManagerPageState extends State<MoodidiManagerPage> {
             left: MediaQuery.of(context).size.width * 0.3,
             child: FloatingActionButton(
               backgroundColor: Colors.orange,
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (_) => const MoodidiCreationDialog(),
-                );
+              onPressed: () async {
+  		final created = await showDialog(
+    		  context: context,
+    		  builder: (_) => const MoodidiCreationDialog(),
+  		);
+  		if (created == true) {
+    		  _refresh();             // Refresh only if new Moodidi was created
+  		}
               },
               child: const Icon(Icons.add),
             ),

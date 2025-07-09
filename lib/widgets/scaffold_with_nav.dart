@@ -6,13 +6,11 @@ import 'header_bar.dart';
 class ScaffoldWithNav extends StatelessWidget {
   final Widget body;
   final int currentIndex;
-  final bool interacted;
 
   const ScaffoldWithNav({
     super.key,
     required this.body,
     required this.currentIndex,
-    required this.interacted,
   });
 
   void _onItemTapped(BuildContext context, int index) {

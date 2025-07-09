@@ -9,13 +9,38 @@ class StartPage extends StatefulWidget {
   State<StartPage> createState() => _StartPageState();
 }
 
-class _StartPageState extends State<StartPage> {
+class _StartPageState extends State<StartPage> with TickerProviderStateMixin {
   bool _interacted = false;
   bool _showPrompt = false;
   bool _showButton = false;
   bool _showScaffold = false;
-  bool _startTransition = false; 
   int _moodValue = 0;
+
+  late AnimationController _controller;
+  late Animation<Color?> _bgColor;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    );
+
+    _bgColor = TweenSequence<Color?>(
+      [
+        TweenSequenceItem(
+          tween: ColorTween(begin: Colors.transparent, end: Colors.black),
+          weight: 50,
+        ),
+        TweenSequenceItem(
+          tween: ColorTween(begin: Colors.black, end: const Color(0xFF004D40)), // or Dark green 0xFF004D40
+          weight: 50,
+        ),
+      ],
+    ).animate(_controller);
+  }
 
   void _onUserInteraction([_]) {
     if (_interacted) return;
@@ -32,21 +57,26 @@ class _StartPageState extends State<StartPage> {
       if (mounted) setState(() => _showButton = true);
     });
 
-    // Show ScaffoldWithNav (header + nav) after 2 seconds
+    // Show ScaffoldWithNav (header + nav) + background animation after 2 seconds
     Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) setState(() => _showScaffold = true);
-    });
-    
-    // Navigate to HomePage after 3 seconds
-    Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
+        setState(() => _showScaffold = true);
+        _controller.forward(); // start background transition 1
+      }
+    });
+
+    // Navigate when animation finishes
+    _controller.addStatusListener((status) {
+      if (status == AnimationStatus.completed && mounted) {
         Navigator.pushReplacementNamed(context, '/');
       }
     });
-  
-    Future.delayed(const Duration(seconds: 3), () {
-      setState(() => _startTransition = true);
-    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
@@ -54,23 +84,25 @@ class _StartPageState extends State<StartPage> {
     return Scaffold(
       body: Stack(
         children: [
-          //  Background image
+          //  1. Background image
           Positioned.fill(
             child: Image.asset(
-              'assets/images/start_bg.jpeg',
+              'assets/images/start_bg.jpg',
               fit: BoxFit.cover,
             ),
           ),
 
-          //  Green overlay that fades in
-          AnimatedContainer(
-            duration: const Duration(seconds: 1),
-            color: _startTransition
-                ? const Color(0xFF2E4C2F).withOpacity(0.85)
-                : Colors.transparent,
+          // 2. Animated overlay (image → black → dark green)
+          Positioned.fill(
+            child: AnimatedBuilder(
+              animation: _bgColor,
+              builder: (context, child) {
+                return Container(color: _bgColor.value);
+              },
+            ),
           ),
 
-          //  Foreground content — your prompt, mood wheel, and save button
+          //  Foreground content: prompt, mood wheel, and save button
           Center(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
@@ -114,6 +146,14 @@ class _StartPageState extends State<StartPage> {
               ),
             ),
           ),
+          // 4. ScaffoldWithNav fades in over the overlay
+          //if (_showScaffold)
+          //  AnimatedOpacity(
+          //    opacity: 1.0,
+          //    duration: const Duration(seconds: 1),
+          //    child: ScaffoldWithNav(
+          //      currentIndex: 0,
+          //      body: Container(), // Replace with actual body content
         ],
       ),
     );

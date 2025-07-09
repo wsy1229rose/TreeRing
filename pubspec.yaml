@@ -24,4 +24,4 @@ dev_dependencies:
 flutter:
   uses-material-design: true 
   assets:
-    - assets/images/start_bg.jpeg
+    - assets/images/start_bg.jpg

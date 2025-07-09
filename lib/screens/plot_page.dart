@@ -105,7 +105,13 @@ class _PlotPageState extends State<PlotPage> {
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(_),
+                onPressed: () {
+                  Navigator.pop(_);
+                  Future.delayed(const Duration(milliseconds: 100), () async {
+                    await Navigator.pushNamed(context, MoodidiManagerPage.routeName);
+                    _showPlotAgainst(); 
+                  });
+                },
                 child: const Text('Manage Moodidi'),
               ),
               TextButton(
@@ -159,7 +165,6 @@ class _PlotPageState extends State<PlotPage> {
 
     return ScaffoldWithNav(
       currentIndex: 1,
-      interacted: true,
       body: Padding(
         padding: const EdgeInsets.all(22),
         child: _entries.isEmpty
