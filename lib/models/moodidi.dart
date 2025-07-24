@@ -1,7 +1,7 @@
 class Moodidi {
   final int? id;
   final String keyword;
-  final String type; // 'yesno' or 'fill'
+  final String type; // 'yesno' or 'numerical'
   final String prompt;
   final DateTime createdAt;
 
@@ -12,6 +12,9 @@ class Moodidi {
     required this.prompt,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
+
+  bool get isNumeric => type == 'numerical';
+
 
   Map<String, dynamic> toMap() => {
         'id': id,

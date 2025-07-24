@@ -32,8 +32,19 @@ class _MoodidiCreationDialogState extends State<MoodidiCreationDialog> {
       type: _type,
       prompt: _promptCtrl.text.trim(),
     );
-    await DatabaseHelper.instance.insertMoodidi(m);
-    if (mounted) Navigator.of(context).pop(); // close dialog
+    try {
+      //print('Inserting Moodidi: ${m.toMap()}');
+      await DatabaseHelper.instance.insertMoodidi(m);
+      print('Insert successful.');
+      if (mounted) Navigator.of(context, rootNavigator: true).pop(true);
+    } catch (e, stack) {
+      print('creation_dialog:41: Insert failed: $e');
+      print(stack);
+      // Optionally show error UI:
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Insert failed: $e')),
+      );
+    }
   }
 
   @override
@@ -56,7 +67,7 @@ class _MoodidiCreationDialogState extends State<MoodidiCreationDialog> {
               controller: _kwCtrl,
               decoration: const InputDecoration(labelText: 'Key word'),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 26),
             const Align(
               alignment: Alignment.centerLeft,
               child: Text(
@@ -65,18 +76,18 @@ class _MoodidiCreationDialogState extends State<MoodidiCreationDialog> {
               ),
             ),
             RadioListTile(
-              title: const Text('yes/no question'),
+              title: const Text('Yes/No question'),
               value: 'yesno',
               groupValue: _type,
               onChanged: (v) => setState(() => _type = v!),
             ),
             RadioListTile(
-              title: const Text('fill in the blank'),
-              value: 'fill',
+              title: const Text('numerical'),
+              value: 'numerical',
               groupValue: _type,
               onChanged: (v) => setState(() => _type = v!),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 26),
 
             // Show either the Next button or the prompt input + Finish button
             if (!_showPromptField)
@@ -89,9 +100,14 @@ class _MoodidiCreationDialogState extends State<MoodidiCreationDialog> {
             else ...[
               TextField(
                 controller: _promptCtrl,
-                maxLines: null,
+                maxLines: null, 
                 decoration: const InputDecoration(
+                  labelText: 'Prompt line',
                   hintText: 'How would you want to be prompted…',
+                  hintStyle: TextStyle(
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                  ),
                 ),
               ),
               const SizedBox(height: 20),

@@ -1,12 +1,12 @@
-import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:treering/db/database_helper.dart';
 import 'package:treering/models/mood_entry.dart';
+import 'package:treering/models/moodidi_entry.dart';
 import 'package:treering/models/moodidi.dart';
 import 'package:treering/widgets/mood_wheel.dart';
 import 'package:treering/widgets/scaffold_with_nav.dart';
-import 'package:treering/screens/plot_page.dart';
 
 class HomePage extends StatefulWidget {
   static const routeName = '/';
@@ -22,11 +22,7 @@ class _HomePageState extends State<HomePage> {
   XFile? _photo;
   Map<String, dynamic> _responses = {};
 
-  void _onInteract([_]) {
-    if (!_interacted) setState(() => _interacted = true);
-  }
-
-  Future<void> _save() async {
+  //Future<void> _save() async {
     // check existing
     // final today = DateTime.now().toIso8601String().split('T').first;
     // final existing = await DatabaseHelper.instance.getEntryByDate(today);
@@ -47,70 +43,6 @@ class _HomePageState extends State<HomePage> {
     //   DateTime parsedDate = DateTime.parse(today);
     //   await DatabaseHelper.instance.deleteEntry(parsedDate);
     // }
-
-    final today = DateTime.now().toIso8601String().split('T').first;
-
-    // collect Moodidi responses
-    final moodidis = await DatabaseHelper.instance.getMoodidiList();
-    for (var m in moodidis) {
-      final response = await _askMoodidi(m);
-      _responses[m.keyword] = response;
-    }
-
-    final entry = MoodEntry(
-      date: today,
-      rating: _moodValue,
-      description: _description,
-      photoPath: _photo?.path,
-      responses: _responses.isEmpty ? null : _responses,
-    );
-    await DatabaseHelper.instance.insertMoodEntry(entry);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Content successfully updated!')),
-    );
-    setState(() {
-      _photo = null;
-      _description = null;
-      _responses.clear();
-    });
-  }
-
-  Future<dynamic> _askMoodidi(Moodidi m) {
-    return showDialog<dynamic>(
-      context: context,
-      builder: (_) {
-        if (m.type == 'yesno') {
-          return AlertDialog(
-            title: Text(m.prompt),
-            actions: [
-              TextButton(
-                  onPressed: () => Navigator.pop(_, true),
-                  child: const Text('Yes')),
-              TextButton(
-                  onPressed: () => Navigator.pop(_, false),
-                  child: const Text('No')),
-            ],
-          );
-        } else {
-          final ctrl = TextEditingController();
-          return AlertDialog(
-            title: Text(m.prompt),
-            content: TextField(
-              controller: ctrl,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(hintText: 'Enter number'),
-            ),
-            actions: [
-              TextButton(
-                  onPressed: () =>
-                      Navigator.pop(_, int.tryParse(ctrl.text) ?? 0),
-                  child: const Text('Submit')),
-            ],
-          );
-        }
-      },
-    );
-  }
 
   Future<void> _showSavePopup() async {
     await showDialog(
@@ -136,20 +68,21 @@ class _HomePageState extends State<HomePage> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Text('or drop a '),
-                    ElevatedButton(
-                      onPressed: () async {
-                        final img = await ImagePicker().pickImage(
-                          source: ImageSource.gallery,
-                          maxHeight: 800,
-                          maxWidth: 800,
-                        );
-                        if (img != null) setState(() => _photo = img);
-                      },
-                      child: const Text('photo'),
-                    ),
-                    if (_photo == null) const SizedBox(width: 8),
-                    if (_photo != null) const Text('picture selected'),
+                    if (_photo == null) ...[
+                      const Text('or drop a '),
+                      ElevatedButton(
+                        onPressed: () async {
+                          final img = await ImagePicker().pickImage(
+                            source: ImageSource.gallery,
+                            maxHeight: 800,
+                            maxWidth: 800,
+                          );
+                          if (img != null) setSt(() => _photo = img);
+                        },
+                        child: const Text('photo'),
+                      )
+                    ] else
+                      const Text('picture selected'), 
                   ],
                 ),
               ],
@@ -173,6 +106,86 @@ class _HomePageState extends State<HomePage> {
         },
       ),
     );
+  }
+
+  Future<void> _save() async {
+    final today = DateTime.now().toIso8601String().split('T').first;
+    final moodidis = await DatabaseHelper.instance.getMoodidiList();
+
+    // Ask all Moodidi questions and store responses
+    for (var m in moodidis) {
+      final response = await _askMoodidi(m);
+      _responses[m.keyword] = response;
+    }
+
+    final entry = MoodEntry(
+      id: null,
+      date: today,
+      rating: _moodValue,
+      description: _description,
+      photoPath: _photo?.path,
+      responses: _responses.isEmpty ? null : _responses,
+    );
+    await DatabaseHelper.instance.insertMoodEntry(entry);
+    debugPrint('[RESPONSES] ${jsonEncode(entry.responses)}');
+
+    // Save each MoodidiEntry based on MoodEntry.responses
+    for (final kv in (entry.responses ?? {}).entries) {
+      final e = MoodidiEntry(
+        keyword: kv.key,
+        entry: (kv.value is bool)
+            ? (kv.value == true ? 1.0 : 0.0)
+            : (kv.value as num).toDouble(),
+      );
+      await DatabaseHelper.instance.insertMoodidiEntry(e);
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Content successfully updated!')),
+    );
+    setState(() {
+      _photo = null;
+      _description = null;
+      _responses.clear();
+    });
+  }
+
+  Future<dynamic> _askMoodidi(Moodidi m) async {
+    dynamic result = await showDialog<dynamic>(
+      context: context,
+      builder: (_) {
+        if (m.type == 'yesno') {
+          return AlertDialog(
+            title: Text(m.prompt),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(_, true),
+                  child: const Text('Yes')),
+              TextButton(
+                  onPressed: () => Navigator.pop(_, false),
+                  child: const Text('No')),
+            ],
+          );
+        } else {
+          final ctrl = TextEditingController();
+          return AlertDialog(
+            title: Text(m.prompt),
+            content: TextField(
+              controller: ctrl,
+              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(hintText: 'Enter number'),
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () =>
+                      Navigator.pop(_, double.tryParse(ctrl.text) ?? 0.0),
+                  child: const Text('Submit')),
+            ],
+          );
+        }
+      },
+    );
+    return result;
   }
 
   @override

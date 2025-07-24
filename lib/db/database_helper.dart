@@ -2,11 +2,11 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/mood_entry.dart';
 import '../models/moodidi.dart';
+import '../models/moodidi_entry.dart';
 
 class DatabaseHelper {
   DatabaseHelper._privateConstructor();
   static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
-
   static Database? _database;
 
   Future<Database> get database async {
@@ -19,8 +19,6 @@ class DatabaseHelper {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, 'mood_database.db');
 
-    print('[DEBUG] using _initDatabase → mood_database.db');
-
     return await openDatabase(
       path,
       version: 1,
@@ -29,6 +27,7 @@ class DatabaseHelper {
   }
 
   Future _onCreate(Database db, int version) async {
+
     await db.execute('''
       CREATE TABLE mood_entries (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -50,18 +49,39 @@ class DatabaseHelper {
       )
     ''');
 
+    await db.execute('''
+      CREATE TABLE moodidi_entries (
+        keyword    TEXT    NOT NULL,
+        entry      NUMERIC NOT NULL,
+        createdAt  TEXT    NOT NULL
+      )
+    ''');
+
     await db.execute('CREATE INDEX idx_mood_entries_date ON mood_entries(date);');
+
   }
 
-  Future<int> deleteEntry(DateTime date) async {
-  final db = await database;
-  return await db.delete(
-    'mood_entries',
-    where: 'date = ?',
-    whereArgs: [date.toIso8601String()],
-  );
-}
+  Future<List<MoodEntry>> getAllMoodEntries() async {
+    final db   = await database;
+    final rows = await db.query(
+      'mood_entries',
+      orderBy: 'date DESC',
+    );
+    // Convert each map into a MoodEntry via your factory
+    return rows.map((row) => MoodEntry.fromMap(row)).toList();
+  }
 
+  Future<List<MoodidiEntry>> getAllMoodidiEntries(String keyword) async {
+    final db   = await database;
+    final rows = await db.query(
+      'moodidi_entries',
+      where: 'keyword = ?',
+      whereArgs: [keyword],
+      orderBy: 'createdAt DESC',
+    );
+    // Convert each map into a MoodidiEntry via your factory
+    return rows.map((row) => MoodidiEntry.fromMap(row)).toList();
+  }
 
 
   // ——— MoodEntry CRUD ———
@@ -75,9 +95,9 @@ class DatabaseHelper {
     );
   }
 
-  Future<MoodEntry?> getEntryByDate(String date) async {
+/*Future<MoodEntry?> getMoodEntryByDate(String date) async {
     final db = await database;
-    final rows = await db.query(
+    final rows = await db.query(                    // unused
       'mood_entries',
       where: 'date = ?',
       whereArgs: [date],
@@ -88,23 +108,14 @@ class DatabaseHelper {
     return null;
   }
 
-  Future<List<MoodEntry>> getMoodEntries() async {
-    final db = await database;
-    final rows = await db.query(
-      'mood_entries',
-      orderBy: 'date ASC',
-    );
-    return rows.map((r) => MoodEntry.fromMap(r)).toList();
-  }
-
-  Future<int> deleteMoodEntry(String date) async {
-    final db = await database;
-    return await db.delete(
-      'mood_entries',
-      where: 'date = ?',
-      whereArgs: [date],
-    );
-  }
+   Future<int> deleteMoodEntry(String date) async {
+     final db = await database;
+     return await db.delete(                         // unused
+       'mood_entries',
+       where: 'date = ?',
+       whereArgs: [date],
+     );
+   }*/
 
   // ——— Moodidi CRUD ———
 
@@ -113,6 +124,7 @@ class DatabaseHelper {
     return await db.insert(
       'moodidi',
       m.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 
@@ -127,10 +139,46 @@ class DatabaseHelper {
 
   Future<int> deleteMoodidi(int id) async {
     final db = await database;
+
+    final result = await db.query(
+      'moodidi',
+      columns: ['keyword'],
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    final keyword = result.first['keyword'] as String;
+
+    await db.delete(
+      'moodidi_entries',
+      where: 'keyword = ?',
+      whereArgs: [keyword],
+    );
+
     return await db.delete(
       'moodidi',
       where: 'id = ?',
       whereArgs: [id],
     );
   }
+
+
+  // ——— MoodidiEntry CRUD ———
+
+  Future<int> insertMoodidiEntry(MoodidiEntry entry) async {
+    final db = await database;
+    return await db.insert(
+      'moodidi_entries',
+      entry.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  /*Future<int> deleteMoodidiEntry(String date) async {
+    final db = await database;
+    return await db.delete(
+      'moodidi_entries',
+      where: 'createdAt = ?',
+      whereArgs: [date],
+    );
+  }*/
 }

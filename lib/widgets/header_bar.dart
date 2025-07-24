@@ -16,7 +16,7 @@ class HeaderBar extends StatelessWidget implements PreferredSizeWidget {
       width: double.infinity,
       height: 70,
       color: Colors.white,
-      alignment: const Alignment(0, 0.7), // x: 0 (centered horizontally), y: 0.5 (slightly lower)
+      alignment: const Alignment(0, 0.5), // x: 0 (centered horizontally), y: 0.5 (slightly lower)
       child: Text(
         title,
         style: const TextStyle(
