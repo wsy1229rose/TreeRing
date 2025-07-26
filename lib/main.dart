@@ -38,7 +38,7 @@ class TreeRingApp extends StatelessWidget {
       initialRoute: '/start',
       routes: {
         '/start': (context) => const StartPage(),
-        '/': (context) => const HomePage(),
+        '/': (context) => const HomePage(initialMood: 0),
         PlotPage.routeName: (_) => const PlotPage(),
         RecordPage.routeName: (_) => const RecordPage(),
         MonthlyReportPage.routeName: (_) => const MonthlyReportPage(),

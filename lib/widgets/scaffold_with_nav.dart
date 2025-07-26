@@ -13,7 +13,7 @@ class ScaffoldWithNav extends StatelessWidget {
     required this.currentIndex,
   });
 
-  void _onItemTapped(BuildContext context, int index) {
+void _onItemTapped(BuildContext context, int index) {
     if (index == currentIndex) return;
     switch (index) {
       case 0:
@@ -22,8 +22,9 @@ class ScaffoldWithNav extends StatelessWidget {
       case 1:
         Navigator.pushNamedAndRemoveUntil(context, PlotPage.routeName, (r) => false);
         break;
-    }
+    } 
   }
+
 
   @override
   Widget build(BuildContext context) {

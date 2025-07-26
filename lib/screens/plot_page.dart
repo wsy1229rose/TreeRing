@@ -124,7 +124,6 @@ class _PlotPageState extends State<PlotPage> {
           padding: const EdgeInsets.all(22),
           child: Column(
             children: [
-              // Replaced internal LineChart + tooltip stack with our new widget ---
               LineChartWidget(
                 key: ValueKey(_selectedMoodidi?.id),
                 selectedMoodidi: _selectedMoodidi,
@@ -132,16 +131,15 @@ class _PlotPageState extends State<PlotPage> {
                 //buildMoodTooltip: (entry) => buildMoodTooltip(context, entry),
                 //buildAvgTooltip: (value) => buildAvgTooltip(context, value),
               ),
-
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ComputeStats(
-                    moodidi: _selectedMoodidi,
-                  ),
-                ]
-              ),
+              // const SizedBox(height: 20),
+              // Row(
+              //   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              //   children: [
+              //     ComputeStats(
+              //       moodidi: _selectedMoodidi,
+              //     ),
+              //   ]
+              // ),
               const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:treering/widgets/mood_wheel.dart';
-import 'package:treering/widgets/scaffold_with_nav.dart';
+import 'package:treering/screens/home_page.dart';
 
 class StartPage extends StatefulWidget {
   const StartPage({super.key});
@@ -13,7 +13,6 @@ class _StartPageState extends State<StartPage> with TickerProviderStateMixin {
   bool _interacted = false;
   bool _showPrompt = false;
   bool _showButton = false;
-  bool _showScaffold = false;
   int _moodValue = 0;
 
   late AnimationController _controller;
@@ -42,6 +41,8 @@ class _StartPageState extends State<StartPage> with TickerProviderStateMixin {
     ).animate(_controller);
   }
 
+
+
   void _onUserInteraction([_]) {
     if (_interacted) return;
 
@@ -60,7 +61,7 @@ class _StartPageState extends State<StartPage> with TickerProviderStateMixin {
     // Show ScaffoldWithNav (header + nav) + background animation after 2 seconds
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
-        setState(() => _showScaffold = true);
+        //setState(() => _showScaffold = true);
         _controller.forward(); // start background transition 1
       }
     });
@@ -68,7 +69,8 @@ class _StartPageState extends State<StartPage> with TickerProviderStateMixin {
     // Navigate when animation finishes
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed && mounted) {
-        Navigator.pushReplacementNamed(context, '/');
+        //Navigator.pushNamed(context, '/');
+        Navigator.push(context, MaterialPageRoute(builder: (_) => HomePage(initialMood: _moodValue))); 
       }
     });
   }
@@ -134,7 +136,8 @@ class _StartPageState extends State<StartPage> with TickerProviderStateMixin {
                     duration: const Duration(seconds: 1),
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.pushReplacementNamed(context, '/');
+                        //Navigator.pushNamed(context, '/');
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => HomePage(initialMood: _moodValue)));
                       },
                       child: const Text(
                         'save',
@@ -146,14 +149,6 @@ class _StartPageState extends State<StartPage> with TickerProviderStateMixin {
               ),
             ),
           ),
-          // 4. ScaffoldWithNav fades in over the overlay
-          //if (_showScaffold)
-          //  AnimatedOpacity(
-          //    opacity: 1.0,
-          //    duration: const Duration(seconds: 1),
-          //    child: ScaffoldWithNav(
-          //      currentIndex: 0,
-          //      body: Container(), // Replace with actual body content
         ],
       ),
     );

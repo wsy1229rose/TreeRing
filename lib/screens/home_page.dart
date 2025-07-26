@@ -10,17 +10,25 @@ import 'package:treering/widgets/scaffold_with_nav.dart';
 
 class HomePage extends StatefulWidget {
   static const routeName = '/';
-  const HomePage({super.key});
+  final int initialMood;
+  const HomePage({super.key, required this.initialMood});
+
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
   bool _interacted = false;
-  int _moodValue = 0;
+  late int _moodValue;
   String? _description;
   XFile? _photo;
   Map<String, dynamic> _responses = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _moodValue = widget.initialMood;
+  }
 
   //Future<void> _save() async {
     // check existing

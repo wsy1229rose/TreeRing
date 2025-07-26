@@ -1,60 +1,19 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../models/moodidi.dart';
-import '../models/mood_entry.dart';
-import 'package:treering/db/database_helper.dart';
+import 'line_chart.dart'; // ← Import chart data
 
 // A widget that displays average, median, and standard deviation
 /// statistics for mood entries. If a yes/no moodidi is selected, it
 /// shows separate stats for yes and no days. Otherwise, it shows
 /// overall stats for all mood entries.
-class ComputeStats extends StatefulWidget {
+class ComputeStats extends StatelessWidget {
   final Moodidi? moodidi;
 
   const ComputeStats({
     Key? key,
     this.moodidi,
   }) : super(key: key);
-
-  @override
-  State<ComputeStats> createState() => _ComputeStatsState();
-}
-
-class _ComputeStatsState extends State<ComputeStats> {
-  List<MoodEntry> moodEntries = [];
-  List<MoodEntry> yesEntries = [];
-  List<MoodEntry> noEntries = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _loadStats();
-  }
-
-  Future<void> _loadStats() async {
-    final all = await DatabaseHelper.instance.getAllMoodEntries();
-    final moodidi = widget.moodidi;
-
-    final yes = <MoodEntry>[];
-    final no = <MoodEntry>[];
-
-    if (moodidi != null) {
-      for (final entry in all) {
-        final response = entry.responses?[moodidi.keyword];
-        if (response == true) {
-          yes.add(entry);
-        } else if (response == false) {
-          no.add(entry);
-        }
-      }
-    }
-
-    setState(() {
-      moodEntries = all;
-      yesEntries = yes;
-      noEntries = no;
-    });
-  }
 
   double _mean(List<double> xs) {
     if (xs.isEmpty) return 0.0;
@@ -77,10 +36,15 @@ class _ComputeStatsState extends State<ComputeStats> {
 
   @override
   Widget build(BuildContext context) {
-    // Case: yes/no moodidi selected
-    if (widget.moodidi != null && !widget.moodidi!.isNumeric) {
-      final yesVals = yesEntries.map((e) => e.rating.toDouble()).toList();
-      final noVals  = noEntries.map((e) => e.rating.toDouble()).toList();
+    final chartState = context.findAncestorStateOfType<LineChartWidgetState>();
+
+    if (chartState == null) {
+      return const Text('Error: No chart state found');
+    }
+
+    if (moodidi != null && !moodidi!.isNumeric) {
+      final yesVals = chartState.yesSpots.map((s) => s.y).toList();
+      final noVals  = chartState.noSpots.map((s) => s.y).toList();
 
       final avgYes = _mean(yesVals).toStringAsFixed(1);
       final medYes = _median(yesVals).toStringAsFixed(1);
@@ -101,22 +65,21 @@ class _ComputeStatsState extends State<ComputeStats> {
       );
     }
 
-    // Default case: no moodidi selected or numeric moodidi: overall stats
-    final allVals = moodEntries.map((e) => e.rating.toDouble()).toList();
-    final avg   = _mean(allVals).toStringAsFixed(1);
-    final med   = _median(allVals).toStringAsFixed(1);
-    final std   = _stdDev(allVals).toStringAsFixed(1);
+    final allVals = chartState.moodSpots.map((s) => s.y).toList();
+    final avg = _mean(allVals).toStringAsFixed(1);
+    final med = _median(allVals).toStringAsFixed(1);
+    final std = _stdDev(allVals).toStringAsFixed(1);
 
     return Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          buildStatBox('Median', med),
-          const SizedBox(width: 24),
-          buildStatBox('Average', avg),
-          const SizedBox(width: 24),
-          buildStatBox('Std Dev', std),
-        ],
-      );
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        buildStatBox('Median', med),
+        const SizedBox(width: 24),
+        buildStatBox('Average', avg),
+        const SizedBox(width: 24),
+        buildStatBox('Std Dev', std),
+      ],
+    );
   }
 
   Widget buildStatBox(String label, String value) {
@@ -136,7 +99,7 @@ class _ComputeStatsState extends State<ComputeStats> {
               borderRadius: BorderRadius.circular(10),
             ),
             child: Center(
-	      child: Text(value, style: const TextStyle(color: Colors.black)),
+              child: Text(value, style: const TextStyle(color: Colors.black)),
             ),
           ),
         ),
